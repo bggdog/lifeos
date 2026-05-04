@@ -27,7 +27,7 @@ import {
 } from '../context/HeartCheckInContext'
 import type { LifeOsUser } from '../context/UserContext'
 import { useUser } from '../context/UserContext'
-import { getUserData, setUserData } from '../lib/storage'
+import { getUserData, setUserData, subscribeKv } from '../lib/storage'
 import { CATEGORY_COLOR } from './goals/categoryStyles'
 import {
   goalProgressPercent,
@@ -286,6 +286,11 @@ export default function Dashboard() {
     globalThis.addEventListener('focus', onFocus)
     return () => globalThis.removeEventListener('focus', onFocus)
   }, [])
+
+  useEffect(
+    () => subscribeKv(() => setRefreshKey((k) => k + 1)),
+    [],
+  )
 
   useEffect(() => {
     const id = globalThis.setInterval(() => setNowTs(Date.now()), 60_000)

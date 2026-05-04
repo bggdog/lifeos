@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { getSharedData, setSharedData } from '../lib/storage'
+import { getSharedData, setSharedData, subscribeKv } from '../lib/storage'
 import type { LifeOsUser } from './UserContext'
 import { useUser } from './UserContext'
 
@@ -120,15 +120,7 @@ export function HeartCheckInProvider({ children }: { children: ReactNode }) {
     readEntries(),
   )
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === `shared.${HEART_KEY}` || e.key === null) {
-        setEntries(readEntries())
-      }
-    }
-    globalThis.addEventListener('storage', onStorage)
-    return () => globalThis.removeEventListener('storage', onStorage)
-  }, [])
+  useEffect(() => subscribeKv(() => setEntries(readEntries())), [])
 
   const hasCheckedInToday = useCallback(
     (user: LifeOsUser) => {

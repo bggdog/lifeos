@@ -5,15 +5,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { I18nProvider } from 'react-aria-components'
 import type { LifeOsUser } from '../../context/UserContext'
 import { useUser } from '../../context/UserContext'
-import {
-  SHARED_TASK_LISTS_KEY,
-  SHARED_TASKS_KEY,
-  TASK_LISTS_KEY,
-  TASKS_KEY,
-} from '../tasks/types'
+import { subscribeKv } from '../../lib/storage'
 import { loadMergedTaskData, persistMerged } from '../tasks/storage'
-import type { Task } from '../tasks/types'
-import type { TaskList } from '../tasks/types'
+import type { Task, TaskList } from '../tasks/types'
 import { AddGoalModal, type AddGoalDraft } from './AddGoalModal'
 import { GoalCard } from './GoalCard'
 import { GoalDetailPanel } from './GoalDetailPanel'
@@ -23,7 +17,6 @@ import {
   todayISO,
 } from './goalUtils'
 import type { Goal, GoalFilter } from './types'
-import { GOALS_KEY } from './types'
 import { loadGoals, persistGoals } from './storage'
 
 const FILTER_TABS: { id: GoalFilter; label: string }[] = [
@@ -92,28 +85,16 @@ function GoalsInner({ user }: { user: LifeOsUser }) {
     [user],
   )
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (!e.key) return
-      const keys = [
-        `shared.${SHARED_TASK_LISTS_KEY}`,
-        `shared.${SHARED_TASKS_KEY}`,
-        `${user}.${TASK_LISTS_KEY}`,
-        `${user}.${TASKS_KEY}`,
-        `${user}.${GOALS_KEY}`,
-      ]
-      if (!keys.includes(e.key)) return
-      if (e.key === `${user}.${GOALS_KEY}`) {
+  useEffect(
+    () =>
+      subscribeKv(() => {
         setGoals(loadGoals(user))
-        return
-      }
-      const merged = loadMergedTaskData(user)
-      setLists(merged.lists)
-      setTasks(merged.tasks)
-    }
-    globalThis.addEventListener('storage', onStorage)
-    return () => globalThis.removeEventListener('storage', onStorage)
-  }, [user])
+        const merged = loadMergedTaskData(user)
+        setLists(merged.lists)
+        setTasks(merged.tasks)
+      }),
+    [user],
+  )
 
   const updateGoal = useCallback(
     (id: string, patch: Partial<Goal>) => {

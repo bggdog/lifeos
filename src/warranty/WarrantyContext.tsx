@@ -3,11 +3,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   type ReactNode,
 } from 'react'
 import { useSyncExternalStore } from 'react'
-import { getUserData, setUserData } from '../lib/storage'
+import { getUserData, setUserData, subscribeKv } from '../lib/storage'
 import { KEYS, WARRANTY_USER } from './constants'
 import { DEFAULT_STATUS_CONFIG } from './defaults'
 import type {
@@ -139,7 +140,18 @@ function readSnapshot(): Snapshot {
   }
 }
 
-let snapshot = readSnapshot()
+function initialSnapshotPlaceholder(): Snapshot {
+  return {
+    communities: [],
+    homes: [],
+    tickets: [],
+    contractors: [],
+    statusConfig: DEFAULT_STATUS_CONFIG.map((s) => ({ ...s })),
+    ticketsView: 'list',
+  }
+}
+
+let snapshot: Snapshot = initialSnapshotPlaceholder()
 const listeners = new Set<() => void>()
 
 function emit() {
@@ -147,13 +159,13 @@ function emit() {
 }
 
 function writeSnapshot(next: Snapshot) {
-  snapshot = next
   setUserData(WARRANTY_USER, KEYS.communities, next.communities)
   setUserData(WARRANTY_USER, KEYS.homes, next.homes)
   setUserData(WARRANTY_USER, KEYS.tickets, next.tickets)
   setUserData(WARRANTY_USER, KEYS.contractors, next.contractors)
   setUserData(WARRANTY_USER, KEYS.statusConfig, next.statusConfig)
   setUserData(WARRANTY_USER, KEYS.ticketsView, next.ticketsView)
+  snapshot = readSnapshot()
   emit()
 }
 
@@ -182,6 +194,15 @@ export function refreshWarrantyFromStorage() {
   emit()
 }
 
+let warrantyKvDebounce: ReturnType<typeof setTimeout> | null = null
+function scheduleWarrantyReloadFromKv() {
+  if (warrantyKvDebounce) clearTimeout(warrantyKvDebounce)
+  warrantyKvDebounce = setTimeout(() => {
+    warrantyKvDebounce = null
+    refreshWarrantyFromStorage()
+  }, 48)
+}
+
 type WarrantyContextValue = Snapshot & {
   upsertCommunity: (c: Community) => void
   deleteCommunity: (id: string) => void
@@ -200,6 +221,8 @@ type WarrantyContextValue = Snapshot & {
 const WarrantyContext = createContext<WarrantyContextValue | null>(null)
 
 export function WarrantyProvider({ children }: { children: ReactNode }) {
+  useEffect(() => subscribeKv(scheduleWarrantyReloadFromKv), [])
+
   const snap = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   const upsertCommunity = useCallback((c: Community) => {

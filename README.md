@@ -4,13 +4,28 @@ Family hub app (schedule, tasks, goals, hearts, warranty). Built with React, Vit
 
 ## Data storage
 
-All data lives in the **browser** (`localStorage`). Nothing is sent to a server, so **no database is required** for hosting. Each device/browser has its own data.
+- **With Supabase env vars set:** Data is stored in Postgres (`lifeos_kv` table) and synced from the browser using the **anon key only** — **no login / no Supabase Auth**. Row-level policies allow open read/write for `anon` (fine only for private or low-risk deployments).
+- **Without Supabase:** The app falls back to **browser `localStorage`** only (same device).
 
-If you later want shared cloud storage across phones and desktops, you’d add something like **Supabase** or **Firebase** and replace the `src/lib/storage.ts` layer—out of scope for the default deploy.
+See `.env.example` for variables.
+
+### Supabase setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. Run the SQL in `supabase/migrations/20260205120000_lifeos_kv.sql` (**SQL Editor** → paste → run), or use the Supabase CLI migrations workflow.
+3. **Realtime (multi-device / multi-tab):** Dashboard → **Database → Replication** → enable **`lifeos_kv`** (or run  
+   `alter publication supabase_realtime add table public.lifeos_kv;`).
+4. Copy **Project URL** + **anon** / publishable key into `.env` locally and into **Vercel → Project → Environment Variables** as  
+   `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (or `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY`).
+5. First deploy with an empty table: existing **`Branson.*` / `Kelsee.*` / `shared.*`** keys from `localStorage` are **imported once** into Supabase (see flag `lifeos.supabase.ls_import_done` in localStorage).
+
+**Security:** Anyone with your anon key and URL can read/write this table. Treat the repo and Vercel env as trusted.
 
 ## Local development
 
 ```bash
+cp .env.example .env
+# fill VITE_SUPABASE_* if using Supabase
 npm install
 npm run dev
 ```
@@ -19,18 +34,11 @@ Dev server uses port **5174** (`vite.config.ts`).
 
 ## Deploy on Vercel
 
-1. Push this repo to GitHub (see below).
-2. In [Vercel](https://vercel.com): **Add New Project** → import the repo.
-3. Vercel detects Vite via `vercel.json`. Defaults:
-   - **Build command:** `npm run build`
-   - **Output directory:** `dist`
-4. Deploy. Client-side routes (`/dashboard`, `/schedule`, etc.) work via the SPA rewrite in `vercel.json`.
-
-No environment variables are required for the current build.
+1. Import the GitHub repo.
+2. **Build:** `npm run build` · **Output:** `dist` · SPA rewrites in `vercel.json`.
+3. Add **Environment Variables** if using Supabase (same names as `.env.example`).
 
 ## GitHub
-
-From this folder:
 
 ```bash
 git init
@@ -39,4 +47,4 @@ git commit -m "Initial commit: LifeOS"
 gh repo create lifeos --public --source=. --remote=origin --push
 ```
 
-(Install the [GitHub CLI](https://cli.github.com/) and run `gh auth login` first, or create an empty repo on GitHub and `git remote add origin …` then `git push -u origin main`.)
+Use `gh auth login` first if needed.

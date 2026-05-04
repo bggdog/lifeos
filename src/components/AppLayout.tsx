@@ -111,7 +111,7 @@ function NavLinks({
             to={to}
             aria-label={label}
             aria-current={active ? 'page' : undefined}
-            className="relative flex size-12 items-center justify-center rounded-xl text-foreground/55 transition-colors hover:bg-accent/45 hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground"
+            className="relative z-[1] flex size-12 cursor-pointer touch-manipulation items-center justify-center rounded-xl text-foreground/55 transition-colors hover:bg-accent/45 hover:text-foreground aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground"
           >
             <Icon className="size-5 shrink-0" strokeWidth={1.75} />
             {hearts && pulseHearts ? (
@@ -283,7 +283,7 @@ export function AppLayout() {
         role="navigation"
         aria-label="Primary"
         variant="secondary"
-        className="fixed inset-x-0 bottom-0 z-40 flex h-[3.75rem] items-stretch justify-around border-t border-border px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 md:hidden"
+        className="pointer-events-auto fixed inset-x-0 bottom-0 z-[100] flex h-[3.75rem] items-stretch justify-around border-t border-border px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1.5 md:hidden"
       >
         <NavLinks
           className="flex w-full max-w-lg items-center justify-around"

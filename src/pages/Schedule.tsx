@@ -1,9 +1,9 @@
 import { Button, Text } from '@heroui/react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { LifeOsUser } from '../context/UserContext'
 import { useUser } from '../context/UserContext'
-import { getUserData, setUserData } from '../lib/storage'
+import { getUserData, setUserData, subscribeKv } from '../lib/storage'
 import type { EventDraft, EventModalMode } from './schedule/EventModal'
 import { EventModal } from './schedule/EventModal'
 import { ScheduleDayView } from './schedule/ScheduleDayView'
@@ -102,6 +102,15 @@ function ScheduleInner({ activeUser }: { activeUser: LifeOsUser }) {
       setUserData(activeUser, EVENTS_KEY, next)
     },
     [activeUser],
+  )
+
+  useEffect(
+    () =>
+      subscribeKv(() => {
+        setEvents(readEventsForUser(activeUser, allowedCategories))
+        setView(parseScheduleView(getUserData(activeUser, SCHEDULE_VIEW_KEY)))
+      }),
+    [activeUser, allowedCategories],
   )
 
   const openAdd = useCallback((partial: Partial<EventDraft>) => {

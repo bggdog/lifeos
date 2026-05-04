@@ -11,16 +11,11 @@ import {
   headerTitle,
   todayISO,
 } from './selectors'
+import { subscribeKv } from '../../lib/storage'
 import { loadMergedTaskData, persistMerged } from './storage'
 import { TaskDetailPanel } from './TaskDetailPanel'
 import { TaskListView } from './TaskListView'
 import type { Selection, Task, TaskList } from './types'
-import {
-  SHARED_TASK_LISTS_KEY,
-  SHARED_TASKS_KEY,
-  TASK_LISTS_KEY,
-  TASKS_KEY,
-} from './types'
 
 function TasksInner({ user }: { user: LifeOsUser }) {
   const isMobile = useMediaQuery('(max-width: 767px)')
@@ -63,27 +58,15 @@ function TasksInner({ user }: { user: LifeOsUser }) {
     [persistAll, lists],
   )
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (!e.key) return
-      const sharedListsKey = `shared.${SHARED_TASK_LISTS_KEY}`
-      const sharedTasksKey = `shared.${SHARED_TASKS_KEY}`
-      const userListsKey = `${user}.${TASK_LISTS_KEY}`
-      const userTasksKey = `${user}.${TASKS_KEY}`
-      if (
-        e.key === sharedListsKey ||
-        e.key === sharedTasksKey ||
-        e.key === userListsKey ||
-        e.key === userTasksKey
-      ) {
+  useEffect(
+    () =>
+      subscribeKv(() => {
         const next = loadMergedTaskData(user)
         setLists(next.lists)
         setTasks(next.tasks)
-      }
-    }
-    globalThis.addEventListener('storage', onStorage)
-    return () => globalThis.removeEventListener('storage', onStorage)
-  }, [user])
+      }),
+    [user],
+  )
 
   const shareList = useCallback(
     (listId: string) => {
