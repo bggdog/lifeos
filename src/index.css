@@ -1,0 +1,49 @@
+@config "../tailwind.config.ts";
+
+@import "@heroui/styles";
+
+@source "../node_modules/@heroui/react/dist";
+
+@layer base {
+  /**
+   * Full-height chain without `height: 100%` on html/#root — that pattern often
+   * collapses or clips nested flex layouts at 100% zoom until a reflow (e.g. zoom).
+   */
+  html {
+    @apply m-0 min-h-dvh;
+  }
+
+  body {
+    @apply m-0 flex min-h-dvh flex-col bg-background text-foreground antialiased;
+  }
+
+  #root {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media print {
+  aside[aria-label='Main navigation'],
+  nav[aria-label='Primary'],
+  .warranty-print-hide,
+  .no-print {
+    display: none !important;
+  }
+  [data-warranty-shell] {
+    display: block !important;
+  }
+  [data-warranty-print-root] {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+}
