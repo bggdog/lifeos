@@ -150,13 +150,13 @@ export function HeartCheckInModal() {
         variant="transparent"
         isDismissable={false}
         isKeyboardDismissDisabled
-        className="z-[200] !bg-transparent ![backdrop-filter:none] [-webkit-backdrop-filter:none] data-[entering]:!animate-none data-[exiting]:!animate-none"
+        className="pointer-events-none z-[200] !bg-transparent ![backdrop-filter:none] [-webkit-backdrop-filter:none] data-[entering]:!animate-none data-[exiting]:!animate-none"
       />
       <Modal.Container
         placement="center"
         size="xs"
         scroll="inside"
-        className="z-[200] flex min-h-[100dvh] w-full max-w-none flex-col items-center justify-center px-3 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] data-[entering]:!animate-none data-[exiting]:!animate-none md:py-6 [&>*]:w-[min(22rem,calc(100vw-1.25rem))]"
+        className="pointer-events-none z-[200] flex min-h-[100dvh] w-full max-w-none flex-col items-center justify-center px-3 py-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] data-[entering]:!animate-none data-[exiting]:!animate-none md:py-6 [&>*]:pointer-events-auto [&>*]:w-[min(22rem,calc(100vw-1.25rem))]"
       >
         <HeartCheckInModalContent
           key={`${activeUser}-${todayLocalISO()}-${skipBump}`}
