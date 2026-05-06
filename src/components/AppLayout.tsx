@@ -22,7 +22,6 @@ import { todayLocalISO, useHeartCheckIn } from '../context/HeartCheckInContext'
 import type { LifeOsUser } from '../context/UserContext'
 import { useUser } from '../context/UserContext'
 import { useHeroUITheme } from '../hooks/use-hero-ui-theme'
-import { HeartCheckInModal } from './HeartCheckInModal'
 
 type NavItem = {
   to: string
@@ -211,8 +210,6 @@ export function AppLayout() {
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 bg-background text-foreground">
-      <HeartCheckInModal />
-
       <Surface
         role="complementary"
         aria-label="Main navigation"

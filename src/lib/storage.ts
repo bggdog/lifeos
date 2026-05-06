@@ -16,6 +16,7 @@ const cache = new Map<string, unknown>()
 
 const kvListeners = new Set<() => void>()
 let notifyScheduled = false
+let pollStarted = false
 
 export function subscribeKv(listener: () => void): () => void {
   kvListeners.add(listener)
@@ -97,6 +98,37 @@ async function upsertRemote(row: KvRow): Promise<void> {
 
 let realtimeStarted = false
 
+function applyRemoteRows(rows: Array<{ bucket: string; key: string; value: unknown }>): boolean {
+  const next = new Map<string, unknown>()
+  for (const row of rows) next.set(cacheKey(row.bucket, row.key), row.value)
+
+  if (next.size === cache.size) {
+    let same = true
+    for (const [k, v] of next) {
+      if (!cache.has(k) || cache.get(k) !== v) {
+        same = false
+        break
+      }
+    }
+    if (same) return false
+  }
+
+  cache.clear()
+  for (const [k, v] of next) cache.set(k, v)
+  return true
+}
+
+async function pullRemoteIntoCache(): Promise<void> {
+  if (!supabase) return
+  const { data, error } = await supabase.from('lifeos_kv').select('bucket,key,value')
+  if (error) {
+    console.error('[lifeos_kv pull]', error.message)
+    return
+  }
+  const changed = applyRemoteRows(data ?? [])
+  if (changed) notifyKvListeners()
+}
+
 function subscribeRealtime(): void {
   if (!supabase || realtimeStarted) return
   realtimeStarted = true
@@ -127,6 +159,21 @@ function subscribeRealtime(): void {
     .subscribe()
 }
 
+function startRemotePolling(): void {
+  if (!supabase || pollStarted) return
+  pollStarted = true
+
+  const kick = () => {
+    void pullRemoteIntoCache()
+  }
+
+  globalThis.setInterval(kick, 8000)
+  globalThis.addEventListener('focus', kick)
+  globalThis.document.addEventListener('visibilitychange', () => {
+    if (globalThis.document.visibilityState === 'visible') kick()
+  })
+}
+
 let hydratePromise: Promise<void> | null = null
 
 async function runHydrate(): Promise<void> {
@@ -140,9 +187,7 @@ async function runHydrate(): Promise<void> {
   const { data, error } = await supabase.from('lifeos_kv').select('bucket,key,value')
   if (error) throw error
 
-  for (const row of data ?? []) {
-    cache.set(cacheKey(row.bucket, row.key), row.value)
-  }
+  applyRemoteRows(data ?? [])
 
   if ((data?.length ?? 0) > 0) {
     LS().setItem(LS_IMPORT_FLAG, '1')
@@ -161,6 +206,7 @@ async function runHydrate(): Promise<void> {
   }
 
   subscribeRealtime()
+  startRemotePolling()
 }
 
 /** Load remote/local KV before rendering the app. Safe to call multiple times. */
@@ -176,8 +222,8 @@ export function getUserData(user: string, key: string): unknown {
 export function setUserData(user: string, key: string, value: unknown): void {
   cache.set(cacheKey(user, key), value)
   notifyKvListeners()
+  LS().setItem(`${user}.${key}`, JSON.stringify(value))
   if (!supabase) {
-    LS().setItem(`${user}.${key}`, JSON.stringify(value))
     return
   }
   void upsertRemote({ bucket: user, key, value })
@@ -190,8 +236,8 @@ export function getSharedData(key: string): unknown {
 export function setSharedData(key: string, value: unknown): void {
   cache.set(cacheKey('shared', key), value)
   notifyKvListeners()
+  LS().setItem(`shared.${key}`, JSON.stringify(value))
   if (!supabase) {
-    LS().setItem(`shared.${key}`, JSON.stringify(value))
     return
   }
   void upsertRemote({ bucket: 'shared', key, value })
